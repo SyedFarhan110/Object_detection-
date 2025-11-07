@@ -9,13 +9,160 @@
     <TextureView
         android:id="@+id/textureView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="0dp"
+        android:layout_above="@id/statsCard"
+        android:layout_alignParentTop="true" />
 
-    <ImageView
+    <SurfaceView
+        android:id="@+id/overlayView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#000"
-        android:id="@+id/imageView"/>
+        android:layout_height="0dp"
+        android:layout_above="@id/statsCard"
+        android:layout_alignParentTop="true"
+        android:background="@android:color/transparent" />
 
+    <!-- Bottom Controls -->
+    <LinearLayout
+        android:id="@+id/bottomControls"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:padding="16dp"
+        android:background="#80000000">
+
+        <Button
+            android:id="@+id/switchModelButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Switch to SSD MobileNet"
+            android:textColor="@android:color/white"
+            android:background="#CC1976D2"
+            android:padding="12dp"
+            android:layout_marginEnd="8dp"
+            android:textAllCaps="false"
+            android:drawableLeft="@android:drawable/ic_menu_rotate"
+            android:drawableTint="@android:color/white" />
+
+        <Button
+            android:id="@+id/toggleStatsButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📊"
+            android:textSize="20sp"
+            android:background="#CC4CAF50"
+            android:padding="12dp"
+            android:minWidth="60dp" />
+
+    </LinearLayout>
+
+    <!-- Stats Card Above Controls -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/statsCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:layout_above="@id/bottomControls"
+        android:layout_alignParentBottom="false"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="8dp"
+        app:cardBackgroundColor="#E6000000">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingBottom="8dp">
+
+                <TextView
+                    android:id="@+id/headerText"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="📊 Object Detection"
+                    android:textColor="@android:color/white"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/totalCountText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Total: 0"
+                    android:textColor="#4CAF50"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:background="#1A4CAF50" />
+
+            </LinearLayout>
+
+            <!-- Divider -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#40FFFFFF"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Model Info -->
+            <TextView
+                android:id="@+id/modelNameText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Model: YOLOx Nano"
+                android:textColor="#B3FFFFFF"
+                android:textSize="12sp"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Object Count List - Fixed size for 4 items -->
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="96dp"
+                android:scrollbars="vertical"
+                android:fadeScrollbars="false"
+                android:scrollbarStyle="outsideOverlay"
+                android:scrollbarThumbVertical="@android:color/white"
+                android:scrollbarSize="4dp"
+                android:background="#1A000000"
+                android:padding="8dp">
+
+                <TextView
+                    android:id="@+id/objectCountText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Waiting for detections..."
+                    android:textColor="@android:color/white"
+                    android:textSize="14sp"
+                    android:lineSpacingExtra="4dp"
+                    android:fontFamily="monospace" />
+
+            </ScrollView>
+
+            <!-- Performance Stats -->
+            <TextView
+                android:id="@+id/fpsText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="FPS: 0.0 | Inference: 0ms"
+                android:textColor="#FFC107"
+                android:textSize="11sp"
+                android:layout_marginTop="8dp" />
+
+        </LinearLayout>
+
+    </androidx.cardview.widget.CardView>
 
 </RelativeLayout>

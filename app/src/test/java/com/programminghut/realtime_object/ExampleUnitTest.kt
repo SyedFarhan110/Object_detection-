@@ -1,4 +1,4 @@
-package com.programminghut.realtime_object
+package com.programminghut.real_object
 
 import org.junit.Test
 
