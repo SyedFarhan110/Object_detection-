@@ -21,6 +21,17 @@
         android:layout_alignParentTop="true"
         android:background="@android:color/transparent" />
 
+    <!-- Image/Video display view (hidden by default) -->
+    <ImageView
+        android:id="@+id/staticImageView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/bottomDashboard"
+        android:layout_alignParentTop="true"
+        android:visibility="gone"
+        android:scaleType="fitCenter"
+        android:background="@android:color/black" />
+
     <!-- Top overlay: FPS only -->
     <LinearLayout
         android:id="@+id/topOverlay"
@@ -67,21 +78,43 @@
         android:scaleType="fitCenter"
         android:padding="8dp" />
 
-    <!-- Download Button next to settings -->
-    <ImageButton
-        android:id="@+id/downloadButton"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_alignParentTop="true"
-        android:layout_toLeftOf="@id/settingsButton"
-        android:layout_margin="12dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:src="@android:drawable/ic_menu_upload"
-        android:tint="@android:color/white"
-        android:elevation="4dp"
-        android:contentDescription="Download Models"
-        android:scaleType="fitCenter"
-        android:padding="8dp" />
+    <!-- Bottom Control Bar with Camera and Upload buttons -->
+    <LinearLayout
+        android:id="@+id/controlBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/bottomDashboard"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:padding="12dp"
+        android:background="@drawable/gradient_top"
+        android:elevation="4dp">
+
+        <Button
+            android:id="@+id/cameraButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="📷 Camera"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:padding="12dp"
+            android:background="@drawable/dashboard_item_bg" />
+
+        <Button
+            android:id="@+id/uploadButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="📁 Upload"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:padding="12dp"
+            android:background="@drawable/dashboard_item_bg" />
+
+    </LinearLayout>
 
     <!-- Bottom Dashboard Box - Shows top 2 detected objects -->
     <LinearLayout

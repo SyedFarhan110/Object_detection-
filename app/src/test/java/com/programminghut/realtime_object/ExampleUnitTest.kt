@@ -1,4 +1,4 @@
-package com.programminghut.real_object
+package com.programminghut.Object_Detection
 
 import org.junit.Test
 

@@ -2,7 +2,25 @@
   {
     "name": "YOLOx Nano",
     "model_url": "https://github.com/SyedFarhan110/tflite-models/raw/refs/heads/main/yolox_nano.tflite",
-    "labels_url": "https://github.com/SyedFarhan110/Object-detection-/raw/refs/heads/main/app/src/main/assets/yoloLabels.txt",
+    "labels_url": "https://github.com/SyedFarhan110/tflite-models/raw/refs/heads/main/yoloLabels.txt",
     "type": "yolox"
+  },
+  {
+    "name": "YOLO 11 Segmentation float32",
+    "model_url": "https://github.com/SyedFarhan110/tflite-models/raw/refs/heads/main/yolo11n-seg_float32.tflite",
+    "labels_url": "https://github.com/SyedFarhan110/tflite-models/raw/refs/heads/main/yoloLabels.txt",
+    "type": "YOLO 11 Segmentation"
+  },
+  {
+    "name": "YOLO 11 Pose float16",
+    "model_url": "https://github.com/SyedFarhan110/tflite-models/raw/refs/heads/main/yolo11n-pose_float16.tflite",
+    "labels_url": "https://github.com/SyedFarhan110/tflite-models/raw/refs/heads/main/yoloPoseLabels.txt",
+    "type": "YOLO 11 Pose"
+  },
+  {
+    "name": "Number Plate Detection",
+    "model_url": "https://github.com/SyedFarhan110/tflite-models/raw/refs/heads/main/lpd_float32.tflite",
+    "labels_url": "https://github.com/SyedFarhan110/tflite-models/raw/refs/heads/main/lpd_labels.txt",
+    "type": "license_plate"
   }
 ]

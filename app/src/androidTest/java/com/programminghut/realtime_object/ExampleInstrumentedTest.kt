@@ -1,4 +1,4 @@
-package com.programminghut.real_object
+package com.programminghut.Object_Detection
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -19,6 +19,6 @@ class ExampleInstrumentedTest {
     fun useAppContext() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("com.programminghut.real_object", appContext.packageName)
+        assertEquals("com.programminghut.Object_Detection", appContext.packageName)
     }
 }
