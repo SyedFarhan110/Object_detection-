@@ -25,7 +25,7 @@ class ModelManager(private val context: Context) {
     
     companion object {
         private const val TAG = "ModelManager"
-        private const val API_URL = "https://raw.githubusercontent.com/SyedFarhan110/Object-detection-/refs/heads/main/transformed_models.json"
+        private const val API_URL = "https://raw.githubusercontent.com/SyedFarhan110/Object_detection-/main/transformed_models.json"
     }
     
     private val availableModels = mutableListOf<ModelInfo>()

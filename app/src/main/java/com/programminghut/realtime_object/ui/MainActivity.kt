@@ -16,9 +16,16 @@ import android.util.Log
 import android.view.Surface
 import android.view.SurfaceView
 import android.view.TextureView
+import android.view.View
 import android.widget.TextView
 import android.widget.LinearLayout
 import android.widget.ImageButton
+import android.widget.Button
+import android.widget.ImageView
+import android.content.Intent
+import android.net.Uri
+import android.provider.MediaStore
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import android.view.Gravity
 import org.tensorflow.lite.support.image.ImageProcessor
@@ -60,11 +67,23 @@ class MainActivity : AppCompatActivity() {
     private var loadingDialog: AlertDialog? = null
     lateinit var settingsButton: ImageButton
     lateinit var fpsTextView: TextView
+    private lateinit var cameraButton: Button
+    private lateinit var uploadButton: Button
+    private lateinit var staticImageView: ImageView
+    private var isInCameraMode = true
+    private var uploadedImageUri: Uri? = null
+    
+    private val pickMediaLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            uploadedImageUri = it
+            handleUploadedMedia(it)
+        }
+    }
     
     // ModelInfo is now in models package
     private val availableModels = mutableListOf<ModelInfo>()
     private var currentModelIndex: Int? = null
-    private val API_URL = "https://raw.githubusercontent.com/SyedFarhan110/Object-detection-/refs/heads/main/transformed_models.json"
+    private val API_URL = "https://raw.githubusercontent.com/SyedFarhan110/Object_detection-/main/transformed_models.json"
     
     lateinit var bottomDashboard: LinearLayout
     lateinit var dashboardEmoji1: TextView
@@ -119,6 +138,14 @@ class MainActivity : AppCompatActivity() {
     private val modelInterpreters = mutableMapOf<String, Interpreter>()
     private var currentInterpreter: Interpreter? = null
     
+    // Detection helpers for specialized models
+    private var poseHelper: PoseEstimationHelper? = null
+    private var segmentationHelper: SegmentationHelper? = null
+    private var licensePlateHelper: LicensePlateDetectionHelper? = null
+    
+    // Store annotated bitmap from pose/segmentation helpers
+    private var annotatedBitmap: Bitmap? = null
+    
     // Camera state management
     private var isCameraOpen = false
     private var captureSession: CameraCaptureSession? = null
@@ -126,6 +153,11 @@ class MainActivity : AppCompatActivity() {
     data class Detection(
         val x1: Float, val y1: Float, val x2: Float, val y2: Float,
         val confidence: Float, val classId: Int, val label: String
+    )
+    
+    data class InferenceResult(
+        val detections: List<Detection>,
+        val annotatedBitmap: Bitmap? = null
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -197,6 +229,19 @@ class MainActivity : AppCompatActivity() {
         }
 
         cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
+
+        // Initialize camera and upload buttons
+        cameraButton = findViewById(R.id.cameraButton)
+        uploadButton = findViewById(R.id.uploadButton)
+        staticImageView = findViewById(R.id.staticImageView)
+        
+        cameraButton.setOnClickListener {
+            switchToCameraMode()
+        }
+        
+        uploadButton.setOnClickListener {
+            showUploadOptions()
+        }
 
         // Fetch model list from API (but don't download)
         showLoadingDialog("Fetching available models...")
@@ -360,11 +405,53 @@ class MainActivity : AppCompatActivity() {
             // Load labels
             loadLabelsForModel(modelInfo)
             
+            // Initialize specialized helpers if needed
+            initializeHelperForModel(modelInfo)
+            
             return true
         } catch (e: Exception) {
             Log.e("ModelDebug", "Error loading model: ${e.message}")
             e.printStackTrace()
             return false
+        }
+    }
+    
+    private fun initializeHelperForModel(modelInfo: ModelInfo) {
+        try {
+            // Clean up existing helpers
+            poseHelper?.close()
+            segmentationHelper?.close()
+            licensePlateHelper?.close()
+            poseHelper = null
+            segmentationHelper = null
+            licensePlateHelper = null
+            
+            val modelFile = File(filesDir, modelInfo.fileName)
+            val labelsFile = File(filesDir, modelInfo.labelsFileName)
+            
+            when (modelInfo.type.lowercase()) {
+                "yolo 11 pose" -> {
+                    Log.d("ModelDebug", "Initializing PoseEstimationHelper")
+                    poseHelper = PoseEstimationHelper(this)
+                    poseHelper?.initialize(modelFile, labelsFile)
+                }
+                "yolo 11 segmentation" -> {
+                    Log.d("ModelDebug", "Initializing SegmentationHelper")
+                    segmentationHelper = SegmentationHelper(this)
+                    segmentationHelper?.initialize(modelFile, labelsFile)
+                }
+                "license_plate", "license plate", "lpd" -> {
+                    Log.d("ModelDebug", "Initializing LicensePlateDetectionHelper")
+                    licensePlateHelper = LicensePlateDetectionHelper(this)
+                    licensePlateHelper?.initialize(modelFile, labelsFile)
+                }
+                else -> {
+                    Log.d("ModelDebug", "Using standard YOLO detection for ${modelInfo.type}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("ModelDebug", "Error initializing helper: ${e.message}")
+            e.printStackTrace()
         }
     }
 
@@ -466,8 +553,14 @@ class MainActivity : AppCompatActivity() {
         image.load(currentBitmap)
         image = imageProcessor.process(image)
 
-        val detections = runInference(image)
-        drawDetections(detections)
+        val result = runInference(image)
+        
+        // For pose/segmentation, composite the camera frame with the annotated overlay
+        if (result.annotatedBitmap != null) {
+            drawDetectionsWithComposite(result.detections, result.annotatedBitmap, currentBitmap)
+        } else {
+            drawDetections(result.detections, null)
+        }
         
         isProcessing = false
         currentBitmap.recycle()
@@ -485,30 +578,106 @@ class MainActivity : AppCompatActivity() {
 }
 
 
-    private fun runInference(image: TensorImage): List<Detection> {
-        val modelIndex = currentModelIndex ?: return emptyList()
+    private fun runInference(image: TensorImage): InferenceResult {
+        val modelIndex = currentModelIndex ?: return InferenceResult(emptyList())
         val currentModel = availableModels[modelIndex]
-        val interpreter = currentInterpreter ?: return emptyList()
+        val interpreter = currentInterpreter ?: return InferenceResult(emptyList())
         
         return try {
             when (currentModel.type.lowercase()) {
                 "yolox", "yolo", "yolov5", "yolov8" -> {
                     Log.d("Inference", "Using YOLO inference for ${currentModel.name}")
-                    runYoloxInference(interpreter, image)
+                    InferenceResult(runYoloxInference(interpreter, image))
+                }
+                "yolo 11 segmentation" -> {
+                    Log.d("Inference", "Using SegmentationHelper for ${currentModel.name}")
+                    if (segmentationHelper != null) {
+                        val bitmap = image.bitmap
+                        val (segmentationResults, maskBitmap) = segmentationHelper!!.runInference(bitmap)
+                        // Store annotated bitmap for overlay display
+                        annotatedBitmap = maskBitmap
+                        // Convert segmentation results to standard Detection format
+                        val detections = segmentationResults.map { result ->
+                            Detection(
+                                x1 = result.x1,
+                                y1 = result.y1,
+                                x2 = result.x2,
+                                y2 = result.y2,
+                                confidence = result.confidence,
+                                classId = result.classId,
+                                label = result.label
+                            )
+                        }
+                        InferenceResult(detections, maskBitmap)
+                    } else {
+                        Log.e("Inference", "SegmentationHelper not initialized, falling back to YOLO")
+                        InferenceResult(runYoloxInference(interpreter, image))
+                    }
+                }
+                "yolo 11 pose" -> {
+                    Log.d("Inference", "Using PoseEstimationHelper for ${currentModel.name}")
+                    if (poseHelper != null) {
+                        val bitmap = image.bitmap
+                        val (poseResults, poseBitmap) = poseHelper!!.runInference(bitmap)
+                        // Store annotated bitmap for overlay display
+                        annotatedBitmap = poseBitmap
+                        // Convert pose results to standard Detection format for counting only
+                        // NOTE: When annotatedBitmap is present, these detections will NOT be drawn
+                        // to avoid duplicate bounding boxes. The bounding boxes in annotatedBitmap
+                        // are already properly positioned and styled (green color with skeleton).
+                        val detections = poseResults.map { result ->
+                            Detection(
+                                x1 = result.x1,
+                                y1 = result.y1,
+                                x2 = result.x2,
+                                y2 = result.y2,
+                                confidence = result.confidence,
+                                classId = 0,
+                                label = "person"
+                            )
+                        }
+                        InferenceResult(detections, poseBitmap)
+                    } else {
+                        Log.e("Inference", "PoseEstimationHelper not initialized, falling back to YOLO")
+                        InferenceResult(runYoloxInference(interpreter, image))
+                    }
+                }
+                "license_plate", "license plate", "lpd" -> {
+                    Log.d("Inference", "Using LicensePlateDetectionHelper for ${currentModel.name}")
+                    if (licensePlateHelper != null) {
+                        val bitmap = image.bitmap
+                        val lpDetections = licensePlateHelper!!.runInference(bitmap)
+                        // Convert license plate detections to standard Detection format
+                        val detections = lpDetections.map { det ->
+                            Detection(
+                                x1 = det.x1,
+                                y1 = det.y1,
+                                x2 = det.x2,
+                                y2 = det.y2,
+                                confidence = det.confidence,
+                                classId = det.classId,
+                                label = det.label
+                            )
+                        }
+                        InferenceResult(detections)
+                    } else {
+                        Log.e("Inference", "LicensePlateDetectionHelper not initialized, falling back to YOLO")
+                        InferenceResult(runYoloxInference(interpreter, image))
+                    }
                 }
                 "ssd", "ssd_mobilenet" -> {
                     Log.d("Inference", "Using SSD inference for ${currentModel.name}")
-                    runSsdInference(interpreter, image)
+                    InferenceResult(runSsdInference(interpreter, image))
                 }
                 else -> {
-                    Log.w("Inference", "Unknown model type '${currentModel.type}', trying SSD format first")
-                    runSsdInference(interpreter, image)
+                    Log.w("Inference", "Unknown model type '${currentModel.type}', trying YOLO format")
+                    InferenceResult(runYoloxInference(interpreter, image))
                 }
             }
         } catch (e: Exception) {
             Log.e("Inference", "Inference failed for ${currentModel.name}: ${e.message}")
             e.printStackTrace()
-            emptyList()
+            InferenceResult(emptyList())
         }
     }
 
@@ -736,7 +905,41 @@ private fun parseSsdOutput(
         return if (unionArea > 0) intersectionArea / unionArea else 0f
     }
 
-    private fun drawDetections(detections: List<Detection>) {
+    private fun drawDetectionsWithComposite(detections: List<Detection>, annotatedBitmap: Bitmap, cameraFrame: Bitmap) {
+        val canvas = overlayView.holder.lockCanvas()
+        if (canvas != null) {
+            try {
+                val h = canvas.height.toFloat()
+                val w = canvas.width.toFloat()
+                
+                canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
+
+                // Draw ONLY the annotated bitmap (masks/poses) on the transparent overlay
+                // The camera feed is already showing in the TextureView behind this overlay
+                val annotRect = Rect(0, 0, annotatedBitmap.width, annotatedBitmap.height)
+                val canvasRect = RectF(0f, 0f, w, h)
+                canvas.drawBitmap(annotatedBitmap, annotRect, canvasRect, null)
+
+                paint.textSize = h / 50f
+                paint.strokeWidth = h / 250f
+                paint.alpha = 255
+                
+                counts.clear()
+                
+                // IMPORTANT: When annotatedBitmap is present (pose/segmentation), 
+                // it already contains properly drawn bounding boxes and other visualizations.
+                // We should NOT draw the detection boxes again to avoid duplicate boxes.
+                // However, we still count the detections for the dashboard.
+                detections.forEach { detection ->
+                    counts[detection.label] = (counts[detection.label] ?: 0) + 1
+                }
+            } finally {
+                overlayView.holder.unlockCanvasAndPost(canvas)
+            }
+        }
+    }
+    
+    private fun drawDetections(detections: List<Detection>, annotatedBitmap: Bitmap? = null) {
         val canvas = overlayView.holder.lockCanvas()
         if (canvas != null) {
             try {
@@ -747,25 +950,30 @@ private fun parseSsdOutput(
 
                 paint.textSize = h / 50f
                 paint.strokeWidth = h / 250f
+                paint.alpha = 255
                 
                 counts.clear()
+                
+                // Draw bounding boxes and labels for all detections
                 detections.forEach { detection ->
                     val color = colors[detection.classId % colors.size]
                     paint.color = color
                     paint.style = Paint.Style.STROKE
                     
-                    val scaleX = w / INPUT_SIZE
-                    val scaleY = h / INPUT_SIZE
+                    val scaleX = w / INPUT_WIDTH
+                    val scaleY = h / INPUT_HEIGHT
                     
                     val left = detection.x1 * scaleX
                     val top = detection.y1 * scaleY
                     val right = detection.x2 * scaleX
                     val bottom = detection.y2 * scaleY
                     
+                    // Draw bounding box
                     canvas.drawRect(left, top, right, bottom, paint)
                     
                     counts[detection.label] = (counts[detection.label] ?: 0) + 1
 
+                    // Draw label background and text
                     paint.style = Paint.Style.FILL
                     val labelText = "${detection.label} ${String.format("%.0f%%", detection.confidence * 100)}"
                     
@@ -1241,6 +1449,140 @@ private fun parseSsdOutput(
                 dismissLoadingDialog("Download failed")
                 showErrorDialog("Failed to download ${modelInfo.name}. Please check your internet connection.")
             }
+        }
+    }
+    
+    private fun showUploadOptions() {
+        val options = arrayOf("Image", "Video")
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Select Media Type")
+        builder.setItems(options) { _, which ->
+            when (which) {
+                0 -> pickMediaLauncher.launch("image/*")
+                1 -> pickMediaLauncher.launch("video/*")
+            }
+        }
+        builder.show()
+    }
+    
+    private fun handleUploadedMedia(uri: Uri) {
+        try {
+            switchToStaticMode()
+            
+            val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, uri)
+            staticImageView.setImageBitmap(bitmap)
+            
+            // Show model selection dialog if not already selected
+            if (currentInterpreter == null) {
+                showModelSelectionDialog()
+            } else {
+                processStaticImage(bitmap)
+            }
+        } catch (e: Exception) {
+            showErrorDialog("Failed to load image: ${e.message}")
+            switchToCameraMode()
+        }
+    }
+    
+    private fun switchToCameraMode() {
+        isInCameraMode = true
+        textureView.visibility = View.VISIBLE
+        staticImageView.visibility = View.GONE
+        
+        if (textureView.isAvailable && !this::cameraDevice.isInitialized) {
+            open_camera()
+        }
+    }
+    
+    private fun switchToStaticMode() {
+        isInCameraMode = false
+        textureView.visibility = View.GONE
+        staticImageView.visibility = View.VISIBLE
+        
+        if (this::cameraDevice.isInitialized) {
+            cameraDevice.close()
+        }
+    }
+    
+    private fun processStaticImage(bitmap: Bitmap) {
+        if (currentInterpreter == null) {
+            showErrorDialog("Please select a model first")
+            return
+        }
+        
+        try {
+            // Create a mutable bitmap for drawing results
+            val mutableBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
+            
+            // Prepare image for inference
+            val resizedBitmap = Bitmap.createScaledBitmap(bitmap, INPUT_WIDTH, INPUT_HEIGHT, true)
+            val tensorImage = TensorImage(DataType.FLOAT32)
+            tensorImage.load(resizedBitmap)
+            val processedImage = imageProcessor.process(tensorImage)
+            
+            // Run inference
+            val result = runInference(processedImage)
+            
+            // If we have an annotated bitmap (pose/segmentation), composite it with the original image
+            if (result.annotatedBitmap != null) {
+                // IMPORTANT: annotatedBitmap is at INPUT_WIDTH x INPUT_HEIGHT dimensions
+                // We need to scale it to match the original bitmap dimensions
+                val scaledAnnotatedBitmap = Bitmap.createScaledBitmap(
+                    result.annotatedBitmap,
+                    mutableBitmap.width,
+                    mutableBitmap.height,
+                    true
+                )
+                
+                // Create a composite image: original + masks/poses
+                val compositeBitmap = mutableBitmap.copy(Bitmap.Config.ARGB_8888, true)
+                val canvas = Canvas(compositeBitmap)
+                
+                // Draw the scaled annotated overlay on top of the original image
+                // NOTE: annotatedBitmap already contains properly drawn bounding boxes,
+                // skeleton overlays, and all necessary visualizations.
+                // DO NOT redraw detection boxes to avoid duplicate boxes!
+                canvas.drawBitmap(scaledAnnotatedBitmap, 0f, 0f, null)
+                
+                // For pose/segmentation models, the annotatedBitmap is the complete visualization.
+                // Detections list is only used for counting/statistics, not for drawing.
+                
+                staticImageView.setImageBitmap(compositeBitmap)
+                
+                // Clean up scaled bitmap
+                scaledAnnotatedBitmap.recycle()
+                return
+            }
+            
+            // Otherwise, draw detections on bitmap
+            val canvas = Canvas(mutableBitmap)
+            val scaleX = mutableBitmap.width.toFloat() / INPUT_WIDTH
+            val scaleY = mutableBitmap.height.toFloat() / INPUT_HEIGHT
+            
+            result.detections.forEach { detection ->
+                paint.color = colors[detection.classId % colors.size]
+                val rect = RectF(
+                    detection.x1 * scaleX,
+                    detection.y1 * scaleY,
+                    detection.x2 * scaleX,
+                    detection.y2 * scaleY
+                )
+                canvas.drawRect(rect, paint)
+                
+                // Draw label
+                paint.style = Paint.Style.FILL
+                paint.textSize = 40f
+                canvas.drawText("${detection.label} ${(detection.confidence * 100).toInt()}%",
+                    rect.left, rect.top - 10, paint)
+                paint.style = Paint.Style.STROKE
+            }
+            
+            // Update the image view
+            staticImageView.setImageBitmap(mutableBitmap)
+            
+        } catch (e: Exception) {
+            showErrorDialog("Detection failed: ${e.message}")
+            Log.e("StaticImage", "Error processing image", e)
         }
     }
 }

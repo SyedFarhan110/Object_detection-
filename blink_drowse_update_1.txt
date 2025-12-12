@@ -1,0 +1,8 @@
+black eyes l
+black eyes r
+leftbotton
+lefttop
+mouthdown
+mouthup
+rightbotton
+righttop

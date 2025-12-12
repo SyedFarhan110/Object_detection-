@@ -431,6 +431,9 @@ class SegmentationHelper(
         
         val finalDetections = mutableListOf<Detection>()
         
+        // More aggressive NMS - lower threshold to filter more overlapping detections
+        val strictIouThreshold = iouThreshold * 0.7f // Use 70% of original threshold for stricter filtering
+        
         for (classIndex in 0 until numClasses) {
             val sameClass = detections.filter { it.cls == classIndex }
             if (sameClass.isEmpty()) continue
@@ -445,7 +448,7 @@ class SegmentationHelper(
                 val boxA = sorted[i].box
                 for (j in i + 1 until sorted.size) {
                     if (!keep[j]) continue
-                    if (iou(boxA, sorted[j].box) > iouThreshold) {
+                    if (iou(boxA, sorted[j].box) > strictIouThreshold) {
                         keep[j] = false
                     }
                 }

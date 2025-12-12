@@ -42,7 +42,7 @@ class PoseEstimationHelper(
     
     private lateinit var imageProcessor: ImageProcessor
     
-    private var confidenceThreshold = 0.25f
+    private var confidenceThreshold = 0.5f
     private var iouThreshold = 0.45f
     
     // Reuse buffers
@@ -285,7 +285,11 @@ class PoseEstimationHelper(
             detections.add(PoseDetection(rectF, conf, keypoints))
         }
         
-        return applyNMS(detections, iouThreshold)
+        Log.d(TAG, "Before NMS: Found ${detections.size} pose detections with conf >= $confidenceThreshold")
+        val filtered = applyNMS(detections, iouThreshold)
+        Log.d(TAG, "After NMS: Kept ${filtered.size} pose detections")
+        
+        return filtered
     }
     
     private fun applyNMS(
@@ -298,6 +302,10 @@ class PoseEstimationHelper(
         val picked = mutableListOf<PoseDetection>()
         val used = BooleanArray(sorted.size)
         
+        // Very aggressive NMS to prevent duplicate detections
+        // Use 30% of original threshold for much stricter filtering
+        val strictIouThreshold = iouThreshold * 0.3f
+        
         for (i in sorted.indices) {
             if (used[i]) continue
             
@@ -305,12 +313,17 @@ class PoseEstimationHelper(
             
             for (j in i + 1 until sorted.size) {
                 if (used[j]) continue
-                if (iou(sorted[i].box, sorted[j].box) > iouThreshold) {
+                val overlapRatio = iou(sorted[i].box, sorted[j].box)
+                
+                // Suppress any detection that has significant overlap
+                if (overlapRatio > strictIouThreshold) {
                     used[j] = true
+                    Log.d(TAG, "Suppressed duplicate: IoU=$overlapRatio with best detection")
                 }
             }
         }
         
+        Log.d(TAG, "NMS: ${detections.size} detections -> ${picked.size} after filtering")
         return picked
     }
     
