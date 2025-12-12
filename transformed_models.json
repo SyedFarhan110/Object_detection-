@@ -3,7 +3,7 @@
     "name": "YOLOx Nano",
     "model_url": "https://github.com/SyedFarhan110/tflite-models/raw/refs/heads/main/yolox_nano.tflite",
     "labels_url": "https://github.com/SyedFarhan110/tflite-models/raw/refs/heads/main/yoloLabels.txt",
-    "type": "yolo"
+    "type": "license_plate"
   },
   {
     "name": "YOLO 11 Segmentation float32",
