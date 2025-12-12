@@ -24,6 +24,12 @@
     "type": "license_plate"
   },
   {
+    "name": "Number Plate Detection",
+    "model_url": "https://github.com/SyedFarhan110/tflite-models/raw/refs/heads/main/lpd_float32.tflite",
+    "labels_url": "https://github.com/SyedFarhan110/tflite-models/raw/refs/heads/main/lpd_labels.txt",
+    "type": "yolo"
+  },
+  {
     "name": "blink_drowse_update",
     "model_url": "https://github.com/SyedFarhan110/tflite-models/raw/refs/heads/main/blink_drowse_update_1_float32.tflite",
     "labels_url": "https://github.com/SyedFarhan110/Object_detection-/raw/refs/heads/main/blink_drowse_update_1.txt",
