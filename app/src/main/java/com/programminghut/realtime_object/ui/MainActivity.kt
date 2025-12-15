@@ -47,6 +47,12 @@ import com.programminghut.Object_Detection.models.ModelInfo
 import com.programminghut.Object_Detection.helpers.LicensePlateDetectionHelper
 import com.programminghut.Object_Detection.helpers.PoseEstimationHelper
 import com.programminghut.Object_Detection.helpers.SegmentationHelper
+import com.programminghut.Object_Detection.helpers.BlinkDrowseDetectionHelper
+import com.programminghut.Object_Detection.helpers.DentDetectionHelper
+import com.programminghut.Object_Detection.helpers.FaceDetectionHelper
+import com.programminghut.Object_Detection.helpers.FireSmokeDetectionHelper
+import com.programminghut.Object_Detection.helpers.GroceryDetectionHelper
+import com.programminghut.Object_Detection.helpers.HelmetDetectionHelper
 import com.programminghut.Object_Detection.R
 
 class MainActivity : AppCompatActivity() {
@@ -142,6 +148,12 @@ class MainActivity : AppCompatActivity() {
     private var poseHelper: PoseEstimationHelper? = null
     private var segmentationHelper: SegmentationHelper? = null
     private var licensePlateHelper: LicensePlateDetectionHelper? = null
+    private var blinkDrowseHelper: BlinkDrowseDetectionHelper? = null
+    private var dentHelper: DentDetectionHelper? = null
+    private var faceHelper: FaceDetectionHelper? = null
+    private var fireSmokeHelper: FireSmokeDetectionHelper? = null
+    private var groceryHelper: GroceryDetectionHelper? = null
+    private var helmetHelper: HelmetDetectionHelper? = null
     
     // Store annotated bitmap from pose/segmentation helpers
     private var annotatedBitmap: Bitmap? = null
@@ -445,6 +457,36 @@ class MainActivity : AppCompatActivity() {
                     licensePlateHelper = LicensePlateDetectionHelper(this)
                     licensePlateHelper?.initialize(modelFile, labelsFile)
                 }
+                "blink_drowse", "drowsiness", "blink" -> {
+                    Log.d("ModelDebug", "Initializing BlinkDrowseDetectionHelper")
+                    blinkDrowseHelper = BlinkDrowseDetectionHelper(this)
+                    blinkDrowseHelper?.initialize(modelFile, labelsFile)
+                }
+                "dent", "vehicle_damage" -> {
+                    Log.d("ModelDebug", "Initializing DentDetectionHelper")
+                    dentHelper = DentDetectionHelper(this)
+                    dentHelper?.initialize(modelFile, labelsFile)
+                }
+                "face", "face_detection" -> {
+                    Log.d("ModelDebug", "Initializing FaceDetectionHelper")
+                    faceHelper = FaceDetectionHelper(this)
+                    faceHelper?.initialize(modelFile, labelsFile)
+                }
+                "fire_smoke", "fire", "smoke" -> {
+                    Log.d("ModelDebug", "Initializing FireSmokeDetectionHelper")
+                    fireSmokeHelper = FireSmokeDetectionHelper(this)
+                    fireSmokeHelper?.initialize(modelFile, labelsFile)
+                }
+                "grocery", "grocery_detection" -> {
+                    Log.d("ModelDebug", "Initializing GroceryDetectionHelper")
+                    groceryHelper = GroceryDetectionHelper(this)
+                    groceryHelper?.initialize(modelFile, labelsFile)
+                }
+                "helmet", "helmet_detection", "safety" -> {
+                    Log.d("ModelDebug", "Initializing HelmetDetectionHelper")
+                    helmetHelper = HelmetDetectionHelper(this)
+                    helmetHelper?.initialize(modelFile, labelsFile)
+                }
                 else -> {
                     Log.d("ModelDebug", "Using standard YOLO detection for ${modelInfo.type}")
                 }
@@ -662,6 +704,84 @@ class MainActivity : AppCompatActivity() {
                         InferenceResult(detections)
                     } else {
                         Log.e("Inference", "LicensePlateDetectionHelper not initialized, falling back to YOLO")
+                        InferenceResult(runYoloxInference(interpreter, image))
+                    }
+                }
+                "blink_drowse", "drowsiness", "blink" -> {
+                    Log.d("Inference", "Using BlinkDrowseDetectionHelper for ${currentModel.name}")
+                    if (blinkDrowseHelper != null) {
+                        val bitmap = image.bitmap
+                        val detections = blinkDrowseHelper!!.runInference(bitmap).map { det ->
+                            Detection(det.x1, det.y1, det.x2, det.y2, det.confidence, det.classId, det.label)
+                        }
+                        InferenceResult(detections)
+                    } else {
+                        Log.e("Inference", "BlinkDrowseDetectionHelper not initialized, falling back to YOLO")
+                        InferenceResult(runYoloxInference(interpreter, image))
+                    }
+                }
+                "dent", "vehicle_damage" -> {
+                    Log.d("Inference", "Using DentDetectionHelper for ${currentModel.name}")
+                    if (dentHelper != null) {
+                        val bitmap = image.bitmap
+                        val detections = dentHelper!!.runInference(bitmap).map { det ->
+                            Detection(det.x1, det.y1, det.x2, det.y2, det.confidence, det.classId, det.label)
+                        }
+                        InferenceResult(detections)
+                    } else {
+                        Log.e("Inference", "DentDetectionHelper not initialized, falling back to YOLO")
+                        InferenceResult(runYoloxInference(interpreter, image))
+                    }
+                }
+                "face", "face_detection" -> {
+                    Log.d("Inference", "Using FaceDetectionHelper for ${currentModel.name}")
+                    if (faceHelper != null) {
+                        val bitmap = image.bitmap
+                        val detections = faceHelper!!.runInference(bitmap).map { det ->
+                            Detection(det.x1, det.y1, det.x2, det.y2, det.confidence, det.classId, det.label)
+                        }
+                        InferenceResult(detections)
+                    } else {
+                        Log.e("Inference", "FaceDetectionHelper not initialized, falling back to YOLO")
+                        InferenceResult(runYoloxInference(interpreter, image))
+                    }
+                }
+                "fire_smoke", "fire", "smoke" -> {
+                    Log.d("Inference", "Using FireSmokeDetectionHelper for ${currentModel.name}")
+                    if (fireSmokeHelper != null) {
+                        val bitmap = image.bitmap
+                        val detections = fireSmokeHelper!!.runInference(bitmap).map { det ->
+                            Detection(det.x1, det.y1, det.x2, det.y2, det.confidence, det.classId, det.label)
+                        }
+                        InferenceResult(detections)
+                    } else {
+                        Log.e("Inference", "FireSmokeDetectionHelper not initialized, falling back to YOLO")
+                        InferenceResult(runYoloxInference(interpreter, image))
+                    }
+                }
+                "grocery", "grocery_detection" -> {
+                    Log.d("Inference", "Using GroceryDetectionHelper for ${currentModel.name}")
+                    if (groceryHelper != null) {
+                        val bitmap = image.bitmap
+                        val detections = groceryHelper!!.runInference(bitmap).map { det ->
+                            Detection(det.x1, det.y1, det.x2, det.y2, det.confidence, det.classId, det.label)
+                        }
+                        InferenceResult(detections)
+                    } else {
+                        Log.e("Inference", "GroceryDetectionHelper not initialized, falling back to YOLO")
+                        InferenceResult(runYoloxInference(interpreter, image))
+                    }
+                }
+                "helmet", "helmet_detection", "safety" -> {
+                    Log.d("Inference", "Using HelmetDetectionHelper for ${currentModel.name}")
+                    if (helmetHelper != null) {
+                        val bitmap = image.bitmap
+                        val detections = helmetHelper!!.runInference(bitmap).map { det ->
+                            Detection(det.x1, det.y1, det.x2, det.y2, det.confidence, det.classId, det.label)
+                        }
+                        InferenceResult(detections)
+                    } else {
+                        Log.e("Inference", "HelmetDetectionHelper not initialized, falling back to YOLO")
                         InferenceResult(runYoloxInference(interpreter, image))
                     }
                 }
@@ -1276,13 +1396,13 @@ private fun parseSsdOutput(
 
                     val emoji = labelToEmoji[label] ?: "❓"
                     
-                    val emojiView = TextView(this).apply {
+                    val emojiView = TextView(this@MainActivity).apply {
                         text = emoji
                         textSize = 32f
                         setPadding(0, 0, 16, 0)
                     }
                     
-                    val countBadge = TextView(this).apply {
+                    val countBadge = TextView(this@MainActivity).apply {
                         text = "× $cnt"
                         textSize = 20f
                         setTextColor(Color.WHITE)
