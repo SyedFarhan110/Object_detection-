@@ -21,7 +21,7 @@
     "name": "Number Plate Detection",
     "model_url": "https://github.com/SyedFarhan110/tflite-models/raw/refs/heads/main/lpd_float32.tflite",
     "labels_url": "https://github.com/SyedFarhan110/tflite-models/raw/refs/heads/main/lpd_labels.txt",
-    "type": "lisence_plate"
+    "type": "license_plate"
   },
  {
     "name": "Blink & Drowsiness Detection",
