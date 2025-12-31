@@ -21,7 +21,7 @@
     "name": "Number Plate Detection",
     "model_url": "https://github.com/SyedFarhan110/tflite-models/raw/refs/heads/main/lpd_float32.tflite",
     "labels_url": "https://github.com/SyedFarhan110/tflite-models/raw/refs/heads/main/lpd_labels.txt",
-    "type": "license_plate"
+    "type": "face"
   },
  {
     "name": "Blink & Drowsiness Detection",
@@ -45,7 +45,7 @@
     "name": "Fire & Smoke Detection",
     "model_url": "https://github.com/SyedFarhan110/tflite-models/raw/refs/heads/main/fire-smoke_float32.tflite",
     "labels_url": "https://github.com/SyedFarhan110/Object_detection-/raw/refs/heads/main/fireSmoke.txt",
-    "type": "fire_smoke"
+    "type": "face"
   },
   {
     "name": "Grocery Item Detection",
@@ -57,6 +57,6 @@
     "name": "Helmet Safety Detection",
     "model_url": "https://github.com/SyedFarhan110/tflite-models/raw/refs/heads/main/helmet_float32.tflite",
     "labels_url": "https://github.com/SyedFarhan110/Object_detection-/raw/refs/heads/main/helmet.txt",
-    "type": "helmet"
+    "type": "face"
   }
 ]
