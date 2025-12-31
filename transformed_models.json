@@ -57,6 +57,6 @@
     "name": "Helmet Safety Detection",
     "model_url": "https://github.com/SyedFarhan110/tflite-models/raw/refs/heads/main/helmet_float32.tflite",
     "labels_url": "https://github.com/SyedFarhan110/Object_detection-/raw/refs/heads/main/helmet.txt",
-    "type": "helmet"
+    "type": "face"
   }
 ]
